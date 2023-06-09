@@ -37,7 +37,7 @@ pr:
     - '**/*.md'
     - '*.md'
     - 'build/cSpell.json'
-- 
+
 resources:
   containers:
   - container: nv-bionic-wasm
