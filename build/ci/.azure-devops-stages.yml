@@ -24,8 +24,8 @@ stages:
     parameters:
       poolName: '$(windowsScaledPool)'
 
-- stage: Packages_Build
-  displayName: Build Packages
+- stage: binaries_build
+  displayName: Build Binaries
   dependsOn:
     - Setup
     - convert_tree
@@ -46,24 +46,31 @@ stages:
   - template: .azure-devops-package-skia.yml
     parameters:
       vmImage: '$(linuxVMImage)'
-  
+
+
+- stage: packages_build
+  displayName: Generate Packages
+  dependsOn:
+    - binaries_build
+
+  jobs: 
   - template: .azure-devops-package.yml
     parameters:
       poolName: '$(windowsScaledPool)'
 
+- stage: Tests_1
+  displayName: Tests 1
+  dependsOn:
+    - binaries_build
+    - convert_tree
+
+  jobs:
   - template: .azure-devops-project-template-tests.yml
     parameters:
       poolName: '$(windowsScaledPool)'
       vmImageWindows: $(windows2022HostedVMImage)
       vmImageLinux: '$(linuxVMImage)'
 
-- stage: Tests_1
-  displayName: Tests 1
-  dependsOn:
-    - Packages_Build
-    - convert_tree
-
-  jobs:
   - template: .azure-devops-unit-tests.yml
     parameters:
       vmImage: '$(windows2022HostedVMImage)'
