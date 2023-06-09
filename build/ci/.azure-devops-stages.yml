@@ -72,8 +72,8 @@ stages:
     parameters:
       vmImage: '$(linuxVMImage)'
 
-- stage: Tests_2
-  displayName: Tests 2
+- stage: skia_tests
+  displayName: Skia Tests
   dependsOn:
     - Setup
 
@@ -84,12 +84,24 @@ stages:
       vmMacImage: '$(macOSVMImage)'
       poolName: '$(windows2022HostedVMImage)'
   
+- stage: macos_tests
+  displayName: macOS Tests
+  dependsOn:
+    - Setup
+
+  jobs:
   - template: .azure-devops-macos.yml
     parameters:
       vmImage: '$(macOSVMImage)'
       xCodeRoot: '$(xCodeRoot)'
       XamarinSDKVersion: '$(XamarinSDKVersion)'
   
+- stage: android_tests
+  displayName: Android Tests
+  dependsOn:
+    - Setup
+
+  jobs:
   - template: .azure-devops-android-tests.yml
     parameters:
       vmWindowsImage: '$(windows2019HostedVMImage)'
@@ -97,6 +109,12 @@ stages:
       xCodeRoot: '$(xCodeRoot)'
       XamarinSDKVersion: '$(XamarinSDKVersion)'
   
+- stage: ios_tests
+  displayName: iOS Tests
+  dependsOn:
+    - Setup
+
+  jobs:
   - template: .azure-devops-ios-tests.yml
     parameters:
       vmImage: '$(macOSVMImage)'
@@ -106,6 +124,12 @@ stages:
       xCodeRootTest: '$(xCodeRoot_iOS_UITests)'
       XamarinSDKVersionTest: '$(XamarinSDKVersion_iOS_UITests)'
 
+- stage: uap_tests
+  displayName: UAP Tests
+  dependsOn:
+    - Setup
+
+  jobs:
   - template: .azure-devops-uap.yml
     parameters:
       vmImage: '$(windows2022HostedVMImage)'
@@ -114,7 +138,11 @@ stages:
   displayName: Test Finalization
   dependsOn:
     - Tests_1
-    - Tests_2
+    - uap_tests
+    - ios_tests
+    - android_tests
+    - macos_tests
+    - skia_tests
 
   jobs:
   - template: .azure-devops-screenshot-compare.yml
