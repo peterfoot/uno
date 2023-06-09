@@ -57,6 +57,11 @@ stages:
   - template: .azure-devops-package.yml
     parameters:
       poolName: '$(windowsScaledPool)'
+  - template: .azure-devops-project-template-tests.yml
+    parameters:
+      poolName: '$(windowsScaledPool)'
+      vmImageWindows: $(windows2022HostedVMImage)
+      vmImageLinux: '$(linuxVMImage)'
 
 - stage: Tests_1
   displayName: Tests 1
@@ -65,11 +70,6 @@ stages:
     - convert_tree
 
   jobs:
-  - template: .azure-devops-project-template-tests.yml
-    parameters:
-      poolName: '$(windowsScaledPool)'
-      vmImageWindows: $(windows2022HostedVMImage)
-      vmImageLinux: '$(linuxVMImage)'
 
   - template: .azure-devops-unit-tests.yml
     parameters:

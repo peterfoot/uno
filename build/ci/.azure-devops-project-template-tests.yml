@@ -100,8 +100,6 @@ jobs:
 
   container: unoplatform/wasm-build:2.3
 
-  dependsOn: Generate_Packages
-
   steps:
   - task: DownloadBuildArtifacts@0
     inputs:
