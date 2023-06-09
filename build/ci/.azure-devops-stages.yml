@@ -115,7 +115,7 @@ stages:
   dependsOn:
     - Tests_1
     - Tests_2
-- 
+
   jobs:
   - template: build/ci/.azure-devops-screenshot-compare.yml
     parameters:
