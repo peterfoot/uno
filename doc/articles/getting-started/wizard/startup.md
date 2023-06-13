@@ -48,7 +48,7 @@ This is an introductory page to the wizard and lets you choose between the blank
 
     - [Logging](#logging)  
         Logging is a crucial component in an app that enables the developer to emit log messages whenever an important action or execution is taken by the app. This then lets you trace back any errors or issues that may arise in the future.  
-        The default template generates an app configured to write debug-level logging information to the Console, and set up using Configuration, Hosting, and DI.
+        The default template generates an app configured to write debug-level logging information to the Console and sets it up using Configuration, Hosting, and DI.
         Uno.Extensions.Logging is covered in more detail [here](xref:Overview.Logging).
 
     - [Navigation](#navigation)  
