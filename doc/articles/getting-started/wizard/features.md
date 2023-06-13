@@ -2,6 +2,10 @@
 uid: Uno.GettingStarted.UsingWizard.Features
 ---
 
+- **Central Package Management**
+    This option enables [Central Package Management](https://learn.microsoft.com/nuget/consume-packages/Central-Package-Management) in the generated Uno Platform solution.  
+    It adds a *Directory.Packages.props* file which enables configuring the dependencies of all projects instead of configuring them in each *.csproj* file individually, which is more complex and tedious.
+
 - **Toolkit**  
     Installs the [Uno.Toolkit](https://github.com/unoplatform/uno.toolkit.ui) package in the project, which adds a set of custom controls, behaviors, extensions, and other utilities to Uno Platform projects that are not offered out-of-the-box by WinUI.  
     This includes [`Card`](https://github.com/unoplatform/uno.toolkit.ui/blob/main/src/Uno.Toolkit.UI/Controls/Card/Card.cs), [`TabBar`](https://github.com/unoplatform/uno.toolkit.ui/blob/main/src/Uno.Toolkit.UI/Controls/TabBar/TabBar.cs), [`NavigationBar`](https://github.com/unoplatform/uno.toolkit.ui/blob/main/src/Uno.Toolkit.UI/Controls/NavigationBar/NavigationBar.cs) and others.
