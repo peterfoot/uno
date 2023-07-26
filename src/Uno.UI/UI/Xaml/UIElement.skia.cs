@@ -27,6 +27,7 @@ namespace Windows.UI.Xaml
 		internal double _canvasTop;
 		internal double _canvasLeft;
 		private Rect _currentFinalRect;
+		private Rect? _currentClippedFrame;
 
 		public UIElement()
 		{
@@ -93,7 +94,7 @@ namespace Windows.UI.Xaml
 				if (_visual == null)
 				{
 					_visual = Window.Current.Compositor.CreateContainerVisual();
-					_visual.Comment = $"Owner:{GetType()}/{Name}";
+					_visual.Comment = $"Owner:{GetType()}/{(this as FrameworkElement)?.Name}";
 				}
 
 				return _visual;
@@ -227,27 +228,6 @@ namespace Windows.UI.Xaml
 
 		internal UIElement FindFirstChild() => _children.FirstOrDefault();
 
-		#region Name Dependency Property
-
-		private void OnNameChanged(string oldValue, string newValue)
-		{
-			if (FrameworkElementHelper.IsUiAutomationMappingEnabled)
-			{
-				Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(this, newValue);
-			}
-		}
-
-		[GeneratedDependencyProperty(DefaultValue = "", ChangedCallback = true)]
-		internal static DependencyProperty NameProperty { get; } = CreateNameProperty();
-
-		public string Name
-		{
-			get => GetNameValue();
-			set => SetNameValue(value);
-		}
-
-		#endregion
-
 		partial void InitializeCapture();
 
 		internal bool IsPointerCaptured { get; set; }
@@ -284,11 +264,16 @@ namespace Windows.UI.Xaml
 			LayoutSlotWithMarginsAndAlignments = finalRect;
 
 			var oldFinalRect = _currentFinalRect;
+			var oldClippedFrame = _currentClippedFrame;
 			_currentFinalRect = finalRect;
+			_currentClippedFrame = clippedFrame;
 
 			var oldRect = oldFinalRect;
 			var newRect = finalRect;
-			if (oldRect != newRect)
+
+			var oldClip = oldClippedFrame;
+			var newClip = clippedFrame;
+			if (oldRect != newRect || oldClip != newClip)
 			{
 				if (
 					newRect.Width < 0

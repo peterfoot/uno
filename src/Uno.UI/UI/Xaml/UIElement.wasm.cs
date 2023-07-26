@@ -18,6 +18,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.System;
 using Color = Windows.UI.Color;
 using System.Globalization;
+using Microsoft.UI.Input;
 
 namespace Windows.UI.Xaml
 {
@@ -79,6 +80,8 @@ namespace Windows.UI.Xaml
 
 		~UIElement()
 		{
+			_brushSubscription?.Unsubscribe();
+
 			try
 			{
 				if (this.Log().IsEnabled(Uno.Foundation.Logging.LogLevel.Debug))
@@ -280,7 +283,7 @@ namespace Windows.UI.Xaml
 		}
 
 		protected internal void SetProperty(string name, string value)
-			=> SetProperty((name, value));
+			=> Uno.UI.Xaml.WindowManagerInterop.SetProperty(HtmlId, name, value);
 
 		protected internal void SetProperty(params (string name, string value)[] properties)
 		{
@@ -350,32 +353,6 @@ namespace Windows.UI.Xaml
 		}
 
 		private Rect _arranged;
-
-		#region Name Dependency Property
-
-		private void OnNameChanged(string oldValue, string newValue)
-		{
-			if (FrameworkElementHelper.IsUiAutomationMappingEnabled)
-			{
-				Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(this, newValue);
-			}
-
-			if (FeatureConfiguration.UIElement.AssignDOMXamlName)
-			{
-				Uno.UI.Xaml.WindowManagerInterop.SetName(HtmlId, newValue);
-			}
-		}
-
-		[GeneratedDependencyProperty(DefaultValue = "", ChangedCallback = true)]
-		public static DependencyProperty NameProperty { get; } = CreateNameProperty();
-
-		public string Name
-		{
-			get => GetNameValue();
-			set => SetNameValue(value);
-		}
-
-		#endregion
 
 		partial void OnUidChangedPartial()
 		{
@@ -641,22 +618,32 @@ namespace Windows.UI.Xaml
 			_registeredRoutedEvents |= routedEvent.Flag;
 
 			string domEventName;
-			if (routedEvent.Flag == RoutedEventFlag.KeyDown)
+			bool onCapturePhase = false;
+			switch (routedEvent.Flag)
 			{
-				domEventName = "keydown";
-			}
-			else
-			{
-				domEventName = routedEvent.Flag == RoutedEventFlag.KeyUp
-					? "keyup"
-					: throw new ArgumentOutOfRangeException(nameof(routedEvent), "Not a keyboard event");
+				case RoutedEventFlag.PreviewKeyDown:
+					domEventName = "keydown";
+					onCapturePhase = true;
+					break;
+				case RoutedEventFlag.KeyDown:
+					domEventName = "keydown";
+					break;
+				case RoutedEventFlag.PreviewKeyUp:
+					domEventName = "keyup";
+					onCapturePhase = true;
+					break;
+				case RoutedEventFlag.KeyUp:
+					domEventName = "keyup";
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(routedEvent), "Not a keyboard event");
 			}
 
 			RegisterEventHandler(
 				domEventName,
 				handler: new RoutedEventHandlerWithHandled((snd, args) => RaiseEvent(routedEvent, args)),
 				invoker: GenericEventHandlers.RaiseRoutedEventHandlerWithHandled,
-				onCapturePhase: false,
+				onCapturePhase,
 				eventExtractor: HtmlEventExtractor.KeyboardEventExtractor,
 				payloadConverter: PayloadToKeyArgs
 			);
@@ -727,6 +714,40 @@ namespace Windows.UI.Xaml
 					yield return type.Name.ToLowerInvariant();
 					type = type.BaseType;
 				}
+			}
+		}
+
+
+		private Microsoft.UI.Input.InputCursor _protectedCursor;
+
+#if HAS_UNO_WINUI
+		protected Microsoft.UI.Input.InputCursor ProtectedCursor
+#else
+		private protected Microsoft.UI.Input.InputCursor ProtectedCursor
+#endif
+		{
+			get => _protectedCursor;
+			set
+			{
+				if (_protectedCursor != value)
+				{
+					_protectedCursor = value;
+					SetProtectedCursorNative();
+				}
+			}
+
+		}
+
+		private void SetProtectedCursorNative()
+		{
+			if (_protectedCursor is Microsoft.UI.Input.InputSystemCursor inputSystemCursor)
+			{
+				var cursorShape = inputSystemCursor.CursorShape.ToCssProtectedCursor();
+				this.SetStyle("cursor", cursorShape);
+			}
+			else
+			{
+				this.ResetStyle("cursor");
 			}
 		}
 	}

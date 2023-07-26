@@ -1,7 +1,8 @@
-﻿#if __WASM__
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Uno.Foundation;
+
+using NativeMethods = __Windows.__System.Launcher.NativeMethods;
 
 namespace Windows.System
 {
@@ -9,10 +10,8 @@ namespace Windows.System
 	{
 		public static Task<bool> LaunchUriPlatformAsync(Uri uri)
 		{
-			var command = $"Uno.UI.WindowManager.current.open(\"{uri.OriginalString}\");";
-			var result = WebAssemblyRuntime.InvokeJS(command);
+			var result = NativeMethods.Open(uri.OriginalString);
 			return Task.FromResult(result == "True");
 		}
 	}
 }
-#endif

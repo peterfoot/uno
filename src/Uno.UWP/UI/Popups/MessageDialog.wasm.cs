@@ -9,18 +9,17 @@ using Uno.Helpers;
 using Windows.Foundation;
 using Windows.UI.Core;
 
+using NativeMethods = __Windows.UI.Popups.MessageDialog.NativeMethods;
+
 namespace Windows.UI.Popups;
 
 public partial class MessageDialog
 {
-	private static readonly SemaphoreSlim _viewControllerAccess = new SemaphoreSlim(1, 1);
-
 	private IAsyncOperation<IUICommand> ShowNativeAsync(CancellationToken ct)
 	{
 		VisualTreeHelperProxy.CloseAllFlyouts();
 
-		var command = $"Uno.UI.WindowManager.current.alert(\"{Uno.Foundation.WebAssemblyRuntime.EscapeJs(Content)}\");";
-		Uno.Foundation.WebAssemblyRuntime.InvokeJS(command);
+		NativeMethods.Alert(Content);
 
 		return AsyncOperation.FromTask<IUICommand>(
 			ct => Task.FromResult<IUICommand>(new UICommand("OK")) // TODO: Localize (PBI 28711)

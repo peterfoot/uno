@@ -12,11 +12,7 @@ using Uno.Foundation.Logging;
 using Uno.UI.Controls;
 using ObjCRuntime;
 
-#if !NET6_0_OR_GREATER
-using NativeHandle = System.IntPtr;
-#endif
-
-#if XAMARIN_IOS_UNIFIED
+#if __IOS__
 using CoreGraphics;
 using _View = UIKit.UIView;
 using _Controller = UIKit.UIViewController;
@@ -35,7 +31,7 @@ using _Color = AppKit.NSColor;
 using _Event = AppKit.NSEvent;
 #endif
 
-#if XAMARIN_IOS_UNIFIED
+#if __IOS__
 namespace UIKit
 #elif __MACOS__
 namespace AppKit
@@ -384,7 +380,7 @@ namespace AppKit
 				// Sometimes, a view is not part of the visual tree (or doesn't have a next responder) but is part of the logical tree.
 				// Here, we substitute the view with the first logical parent that's part of the visual tree (or has a next responder).
 				view = (view as DependencyObject)
-					.GetParents()
+					?.GetParents()
 					.OfType<_View>()
 					.Where(parent => parent.NextResponder != null)
 					.FirstOrDefault();
@@ -401,6 +397,10 @@ namespace AppKit
 				else if (responder is _Controller controller)
 				{
 					return controller;
+				}
+				else
+				{
+					responder = null;
 				}
 
 			} while (responder != null);

@@ -257,12 +257,44 @@ namespace Microsoft.CodeAnalysis
 				return symbol.GetMembers(memberName).FirstOrDefault();
 			}
 
-			var typeSymbol = (INamedTypeSymbol?)symbol;
+			var typeSymbol = (ITypeSymbol?)symbol;
 			while (typeSymbol is not null)
 			{
 				if (typeSymbol.GetMembers(memberName).FirstOrDefault() is { } member)
 				{
 					return member;
+				}
+
+				typeSymbol = typeSymbol.BaseType;
+			}
+
+			return null;
+		}
+
+		public static ISymbol? GetMemberInlcudingBaseTypes<TArg>(this INamespaceOrTypeSymbol symbol, TArg arg, Func<ISymbol, TArg, bool> predicate)
+		{
+			if (symbol is INamespaceSymbol)
+			{
+				foreach (var candicate in symbol.GetMembers())
+				{
+					if (predicate(candicate, arg))
+					{
+						return candicate;
+					}
+				}
+
+				return null;
+			}
+
+			var typeSymbol = (ITypeSymbol?)symbol;
+			while (typeSymbol is not null)
+			{
+				foreach (var candidate in typeSymbol.GetMembers())
+				{
+					if (predicate(candidate, arg))
+					{
+						return candidate;
+					}
 				}
 
 				typeSymbol = typeSymbol.BaseType;

@@ -2,7 +2,9 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Uno.UI.Xaml.Media;
 using Windows.Foundation;
+using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Media;
 
 namespace Windows.UI.Xaml.Controls;
@@ -19,13 +21,14 @@ public partial class IconElement : FrameworkElement
 
 	public IconElement()
 	{
+		SetDefaultForeground(ForegroundProperty);
 	}
 
 	/// <summary>
 	/// Gets or sets a brush that describes the foreground color.
 	/// </summary>
 	public
-#if __ANDROID_23__
+#if __ANDROID__
 	new
 #endif
 	Brush Foreground
@@ -85,6 +88,13 @@ public partial class IconElement : FrameworkElement
 	}
 
 	private protected virtual void OnForegroundChanged(DependencyPropertyChangedEventArgs e) { }
+
+	internal override void UpdateThemeBindings(ResourceUpdateReason updateReason)
+	{
+		base.UpdateThemeBindings(updateReason);
+
+		SetDefaultForeground(ForegroundProperty);
+	}
 
 	[MemberNotNull(nameof(_rootGrid))]
 	private protected void InitializeRootGrid()

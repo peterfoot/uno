@@ -39,7 +39,13 @@ namespace Windows.Media.Capture
 						break;
 
 					case CameraCaptureUIMode.Video:
+#pragma warning disable CA1416 // UTType.Image, UTType.Movie is supported on ios version 14 and above
+						picker.MediaTypes = new string[] { MobileCoreServices.UTType.Movie };
+#pragma warning restore CA1416
 						picker.CameraCaptureMode = UIImagePickerControllerCameraCaptureMode.Video;
+
+						await ValidateCameraAccess();
+						await ValidateMicrophoneAccess();
 						break;
 				}
 			}
@@ -72,7 +78,7 @@ namespace Windows.Media.Capture
 					var image = result.ValueForKey(new NSString("UIImagePickerControllerOriginalImage")) as UIImage;
 					var metadata = result.ValueForKey(new NSString("UIImagePickerControllerOriginalImage")) as UIImage;
 
-					var correctedImage = FixOrientation(ct, image);
+					var correctedImage = FixOrientation(image);
 
 					(Stream data, string extension) GetImageStream()
 					{
@@ -108,6 +114,34 @@ namespace Windows.Media.Capture
 				: true;
 		}
 
+		private async Task ValidateMicrophoneAccess()
+		{
+			if (!IsUsageKeyDefined("NSMicrophoneUsageDescription"))
+			{
+				throw new InvalidOperationException("Info.plist must define NSMicrophoneUsageDescription");
+			}
+
+			var isAllowed = (await AVCaptureDevice.RequestAccessForMediaTypeAsync(AVAuthorizationMediaType.Audio));
+			if (!isAllowed)
+			{
+				throw new UnauthorizedAccessException();
+			}
+		}
+
+		private async Task ValidateCameraAccess()
+		{
+			if (!IsUsageKeyDefined("NSCameraUsageDescription"))
+			{
+				throw new InvalidOperationException("Info.plist must define NSCameraUsageDescription");
+			}
+
+			var isAllowed = (await AVCaptureDevice.RequestAccessForMediaTypeAsync(AVAuthorizationMediaType.Video));
+			if (!isAllowed)
+			{
+				throw new UnauthorizedAccessException();
+			}
+		}
+
 		private async Task ValidatePhotoLibraryAccess()
 		{
 			if (!IsUsageKeyDefined("NSPhotoLibraryUsageDescription"))
@@ -140,10 +174,9 @@ namespace Windows.Media.Capture
 		/// <summary>
 		/// Fixes orientation issues caused by taking an image straight from the camera
 		/// </summary>
-		/// <param name="ct">Cancellation token</param>
 		/// <param name="image">UI Image</param>
 		/// <returns>UI image</returns>
-		private UIImage FixOrientation(CancellationToken ct, UIImage image)
+		private static UIImage FixOrientation(UIImage image)
 		{
 			if (image.Orientation == UIImageOrientation.Up)
 			{

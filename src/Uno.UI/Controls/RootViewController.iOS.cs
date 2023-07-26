@@ -9,11 +9,8 @@ using Uno.Extensions;
 using Windows.Devices.Sensors;
 using CoreGraphics;
 using ObjCRuntime;
+using Uno.Helpers.Theming;
 using WinUICoreServices = Uno.UI.Xaml.Core.CoreServices;
-
-#if !NET6_0_OR_GREATER
-using NativeHandle = System.IntPtr;
-#endif
 
 namespace Uno.UI.Controls
 {
@@ -93,7 +90,7 @@ namespace Uno.UI.Controls
 		public override void TraitCollectionDidChange(UITraitCollection previousTraitCollection)
 		{
 			base.TraitCollectionDidChange(previousTraitCollection);
-			Windows.UI.Xaml.Application.Current.OnSystemThemeChanged();
+			SystemThemeHelper.RefreshSystemTheme();
 		}
 	}
 }

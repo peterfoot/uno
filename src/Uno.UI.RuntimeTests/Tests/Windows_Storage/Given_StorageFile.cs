@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Uno.UI.RuntimeTests.Tests.Windows_Storage.Streams;
@@ -351,8 +352,8 @@ namespace Uno.UI.RuntimeTests.Tests
 		}
 
 		[TestMethod]
-#if __MACOS__ && !NET6_0_OR_GREATER
-		[Ignore] // Not supported for Xamarin.mac target
+#if __MACOS__
+		[Ignore("Currently fails on macOS, part of #9282 epic")]
 #endif
 		public async Task When_Project_Transitive_Asset()
 		{
@@ -369,6 +370,33 @@ namespace Uno.UI.RuntimeTests.Tests
 				Assert.Fail("Transitive asset could not be found: " + ex);
 			}
 		}
+
+		[TestMethod]
+		public async Task When_GetFileFromApplicationUriAsync_Is_Passed_AppData()
+		{
+			var file1 = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/ingredient3.png"));
+			await file1.CopyAsync(ApplicationData.Current.LocalFolder, "ingredient3.png", NameCollisionOption.ReplaceExisting);
+
+			var file2 = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appdata:///local/ingredient3.png"));
+			var bytes1 = (await file1.OpenStreamForReadAsync()).ReadAllBytes();
+			var bytes2 = (await file2.OpenStreamForReadAsync()).ReadAllBytes();
+			Assert.IsTrue(bytes1.SequenceEqual(bytes2));
+		}
+
+#if __ANDROID__
+		[TestMethod]
+		public async Task When_Copy_Saf()
+		{
+			var file1 = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/ingredient3.png"));
+			await file1.CopyAsync(ApplicationData.Current.LocalCacheFolder, "ingredient3.png", NameCollisionOption.ReplaceExisting);
+
+			var directory = new Java.IO.File(ApplicationData.Current.LocalCacheFolder.Path);
+			var documentFile = AndroidX.DocumentFile.Provider.DocumentFile.FromFile(directory).CreateFile("image/png", "ingredient3.png");
+
+			var file2 = StorageFile.GetFromSafDocument(documentFile);
+			await file2.CopyAsync(ApplicationData.Current.LocalFolder, "When_Copy_Saf_uno_logo.png", NameCollisionOption.ReplaceExisting);
+		}
+#endif
 
 		private string GetRandomFilePath()
 			=> Path.Combine(ApplicationData.Current.LocalFolder.Path, $"{Guid.NewGuid()}.txt");

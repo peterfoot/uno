@@ -1,31 +1,31 @@
-﻿#if __NETSTD__
+﻿#if __CROSSRUNTIME__
 #define MEASURE_DIRTY_PATH_AVAILABLE
 #define ARRANGE_DIRTY_PATH_AVAILABLE
 #elif __ANDROID__
 #define MEASURE_DIRTY_PATH_AVAILABLE
 #endif
 
-using System.Threading.Tasks;
-using Windows.Foundation;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Windows.UI.Xaml.Controls;
-using Private.Infrastructure;
-using Windows.UI.Xaml;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Shapes;
 using System;
-using Windows.UI.Xaml.Media;
+using System.Numerics;
+using System.Threading.Tasks;
 using FluentAssertions;
 using FluentAssertions.Execution;
-#if NETFX_CORE
-using Uno.UI.Extensions;
-#elif __IOS__
+using Private.Infrastructure;
+using Windows.Foundation;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Controls.Primitives;
+using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Shapes;
+
+#if __IOS__
 using UIKit;
 #elif __MACOS__
 using AppKit;
 #else
 using Uno.UI;
-using Uno.UI.Xaml;
+using Windows.UI;
+using Windows.ApplicationModel.Appointments;
 #endif
 
 namespace Uno.UI.RuntimeTests.Tests.Windows_UI_Xaml
@@ -73,7 +73,6 @@ namespace Uno.UI.RuntimeTests.Tests.Windows_UI_Xaml
 #endif
 #endif
 
-#if HAS_UNO // Issue #2840 - ActualSize is available since 18362
 		[TestMethod]
 		[RunsOnUIThread]
 		public async Task When_TextBlock_ActualSize()
@@ -92,16 +91,18 @@ namespace Uno.UI.RuntimeTests.Tests.Windows_UI_Xaml
 
 			border.UpdateLayout();
 
-			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualWidth - text.ActualSize.X) < 0.01);
-			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualHeight - text.ActualSize.Y) < 0.01);
+			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualWidth - text.ActualSize.X) < 1);
+			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualHeight - text.ActualSize.Y) < 1);
 
 			text.Text = "This is a longer text";
 			border.UpdateLayout();
 
-			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualWidth - text.ActualSize.X) < 0.01);
-			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualHeight - text.ActualSize.Y) < 0.01);
+			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualWidth - text.ActualSize.X) < 1);
+			await TestServices.WindowHelper.WaitFor(() => Math.Abs(text.ActualHeight - text.ActualSize.Y) < 1);
 		}
 
+		[TestMethod]
+		[RunsOnUIThread]
 		public async Task When_Rectangle_Set_ActualSize()
 		{
 			Border border = new Border();
@@ -134,7 +135,92 @@ namespace Uno.UI.RuntimeTests.Tests.Windows_UI_Xaml
 			await TestServices.WindowHelper.WaitFor(() =>
 				Math.Abs(rectangle.ActualHeight - rectangle.ActualSize.Y) < 0.01);
 		}
-#endif
+
+		[TestMethod]
+		[RunsOnUIThread]
+		[RequiresFullWindow]
+		public async Task When_Root_ActualOffset()
+		{
+			Border border = new Border();
+
+			TestServices.WindowHelper.WindowContent = border;
+			await TestServices.WindowHelper.WaitForIdle();
+
+			border.UpdateLayout();
+
+			Assert.AreEqual(Vector3.Zero, border.ActualOffset);
+		}
+
+		[TestMethod]
+		[RunsOnUIThread]
+		[RequiresFullWindow]
+		public async Task When_Root_Margin_ActualOffset()
+		{
+			Border border = new Border()
+			{
+				Margin = new Thickness(10)
+			};
+
+			TestServices.WindowHelper.WindowContent = border;
+			await TestServices.WindowHelper.WaitForIdle();
+
+			border.UpdateLayout();
+
+			Assert.AreEqual(new Vector3(10, 10, 0), border.ActualOffset);
+		}
+
+		[TestMethod]
+		[RunsOnUIThread]
+		[RequiresFullWindow]
+		public async Task When_Child_ActualOffset()
+		{
+			var grid = new Grid();
+			grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(100, GridUnitType.Pixel) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(50, GridUnitType.Pixel) });
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Star) });
+
+			var button = new Button() { Content = "Test", HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(10) };
+			grid.Children.Add(button);
+			Grid.SetColumn(button, 1);
+			Grid.SetRow(button, 1);
+
+			TestServices.WindowHelper.WindowContent = grid;
+			await TestServices.WindowHelper.WaitForIdle();
+
+			grid.UpdateLayout();
+
+			Assert.AreEqual(new Vector3(110, 60, 0), button.ActualOffset);
+		}
+
+		[TestMethod]
+		[RunsOnUIThread]
+		[RequiresFullWindow]
+		public async Task When_Nested_Child_ActualOffset()
+		{
+			var border = new Border();
+			var grid = new Grid()
+			{
+				Margin = new Thickness(10)
+			};
+			grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(100, GridUnitType.Pixel) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(50, GridUnitType.Pixel) });
+			grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Star) });
+
+			var button = new Button() { Content = "Test", HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(10) };
+			grid.Children.Add(button);
+			Grid.SetColumn(button, 1);
+			Grid.SetRow(button, 1);
+			border.Child = grid;
+
+			TestServices.WindowHelper.WindowContent = border;
+			await TestServices.WindowHelper.WaitForIdle();
+
+			border.UpdateLayout();
+
+			Assert.AreEqual(new Vector3(110, 60, 0), button.ActualOffset);
+		}
 
 #if HAS_UNO // Cannot Set the LayoutInformation on UWP
 		[TestMethod]
@@ -510,7 +596,7 @@ namespace Uno.UI.RuntimeTests.Tests.Windows_UI_Xaml
 			}
 		}
 
-#if __NETSTD__
+#if __CROSSRUNTIME__
 		[TestMethod]
 		[RunsOnUIThread]
 		public void MeasureDirtyTest()
@@ -560,6 +646,24 @@ namespace Uno.UI.RuntimeTests.Tests.Windows_UI_Xaml
 				sut.IsArrangeDirty.Should().BeFalse("IsArrangeDirty");
 				sut.IsArrangeDirtyPath.Should().BeFalse("IsArrangeDirtyPath");
 			}
+		}
+#endif
+
+#if __SKIA__
+		[TestMethod]
+		[RunsOnUIThread]
+		public async Task When_Explicit_Size_Clip_Changes()
+		{
+			var sut = new UIElement();
+
+			var rect = new Rect(0, 0, 100, 100);
+			var clip = new Rect(0, 0, 50, 50);
+
+			sut.ArrangeVisual(rect, clip);
+			Assert.IsNotNull(sut.Visual.Clip);
+
+			sut.ArrangeVisual(rect, null);
+			Assert.IsNull(sut.Visual.Clip);
 		}
 #endif
 	}

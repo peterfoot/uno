@@ -1,4 +1,6 @@
-using Uno.Foundation;
+﻿using Uno.Foundation;
+
+using NativeMethods = __Windows.UI.Core.CoreWindow.NativeMethods;
 
 namespace Windows.UI.Core
 {
@@ -19,14 +21,7 @@ namespace Windows.UI.Core
 
 		private void Internal_SetPointerCursor()
 		{
-			var command = string.Concat(new[]
-			{
-				"Uno.UI.WindowManager.current.setCursor(\"",
-				_pointerCursor.Type.ToCssCursor(),
-				"\");"
-			});
-
-			WebAssemblyRuntime.InvokeJS(command);
+			NativeMethods.SetCursor(_pointerCursor.Type.ToCssCursor());
 		}
 	}
 }

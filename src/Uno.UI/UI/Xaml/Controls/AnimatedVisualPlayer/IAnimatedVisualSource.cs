@@ -2,7 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 
-namespace Windows.UI.Xaml.Controls
+namespace Microsoft.UI.Xaml.Controls
 {
 	public partial interface IAnimatedVisualSource
 	{
@@ -17,7 +17,10 @@ namespace Windows.UI.Xaml.Controls
 		void SetProgress(double progress);
 
 		Size Measure(Size availableSize);
+	}
 
+	internal partial interface IAnimatedVisualSourceWithUri
+	{
 		Uri UriSource { get; set; }
 	}
 }

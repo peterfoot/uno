@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text;
 using System.Windows.Input;
-#if XAMARIN_ANDROID
+#if __ANDROID__
 using _View = Android.Views.View;
-#elif XAMARIN_IOS
+#elif __IOS__
 using _View = UIKit.UIView;
 #else
 using View = Windows.UI.Xaml.FrameworkElement;
@@ -29,6 +29,7 @@ using Windows.Foundation;
 using Uno.UI;
 using Windows.UI.Xaml.Input;
 using Windows.System;
+using Uno.UI.Xaml.Input;
 
 namespace Windows.UI.Xaml.Controls
 {
@@ -130,7 +131,8 @@ namespace Windows.UI.Xaml.Controls
 			}
 
 			// If selection mode is single, moving focus also selects the item
-			if (SelectionMode == ListViewSelectionMode.Single)
+			if (SelectionMode == ListViewSelectionMode.Single &&
+				SingleSelectionFollowsFocus)
 			{
 				SelectedIndex = index;
 			}
@@ -198,7 +200,7 @@ namespace Windows.UI.Xaml.Controls
 			try
 			{
 				_modifyingSelectionInternally = true;
-
+				_isUpdatingSelection = true;
 				var itemIndex = SelectedItems.Select(item => (int?)items.IndexOf(item)).FirstOrDefault(index => index > -1);
 				if (itemIndex != null)
 				{
@@ -217,6 +219,7 @@ namespace Windows.UI.Xaml.Controls
 			finally
 			{
 				_modifyingSelectionInternally = false;
+				_isUpdatingSelection = false;
 			}
 			if (validAdditions.Any() || validRemovals.Any())
 			{
@@ -261,6 +264,11 @@ namespace Windows.UI.Xaml.Controls
 					case ListViewSelectionMode.None:
 						break;
 					case ListViewSelectionMode.Single:
+						if (_changingSelectedIndex)
+						{
+							break;
+						}
+
 						var index = IndexFromItem(item);
 						if (!newIsSelected)
 						{
@@ -379,8 +387,16 @@ namespace Windows.UI.Xaml.Controls
 		{
 			base.OnSelectedIndexChanged(oldSelectedIndex, newSelectedIndex);
 
-			//SetSelectedState(oldSelectedIndex, false);
-			//SetSelectedState(newSelectedIndex, true);
+			try
+			{
+				_changingSelectedIndex = true;
+				SetSelectedState(oldSelectedIndex, false);
+				SetSelectedState(newSelectedIndex, true);
+			}
+			finally
+			{
+				_changingSelectedIndex = false;
+			}
 		}
 
 		public event ItemClickEventHandler ItemClick;
@@ -699,6 +715,7 @@ namespace Windows.UI.Xaml.Controls
 			{
 				CleanUpContainer(container);
 			}
+			ItemsPanelRoot?.Children?.Clear();
 		}
 
 		private ICollection<DependencyObject> CaptureContainers(int startingIndex, int length)

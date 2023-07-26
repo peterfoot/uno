@@ -21,7 +21,7 @@ public partial class CoreWebView2
 
 	private readonly IWebView _owner;
 
-	private bool _scrollEnabled;
+	private bool _scrollEnabled = true;
 	private INativeWebView? _nativeWebView;
 	internal long _navigationId;
 	private object? _processedSource;
@@ -30,6 +30,8 @@ public partial class CoreWebView2
 	{
 		_owner = owner;
 	}
+
+	internal IWebView Owner => _owner;
 
 	/// <summary>
 	/// Gets the CoreWebView2Settings object contains various modifiable
@@ -64,7 +66,7 @@ public partial class CoreWebView2
 		UpdateFromInternalSource();
 	}
 
-	internal void NavigateWithHttpRequestMessage(global::System.Net.Http.HttpRequestMessage requestMessage)
+	internal void NavigateWithHttpRequestMessage(global::Windows.Web.Http.HttpRequestMessage requestMessage)
 	{
 		if (requestMessage?.RequestUri is null)
 		{
@@ -163,6 +165,12 @@ public partial class CoreWebView2
 
 	internal void RaiseHistoryChanged() => HistoryChanged?.Invoke(this, null);
 
+	internal void SetHistoryProperties(bool canGoBack, bool canGoForward)
+	{
+		CanGoBack = canGoBack;
+		CanGoForward = canGoForward;
+	}
+
 	internal void RaiseWebMessageReceived(string message) => WebMessageReceived?.Invoke(this, new(message));
 
 	internal void RaiseUnsupportedUriSchemeIdentified(Uri targetUri, out bool handled)
@@ -171,13 +179,6 @@ public partial class CoreWebView2
 		UnsupportedUriSchemeIdentified?.Invoke(this, args);
 
 		handled = args.Handled;
-	}
-
-	internal void SetHistoryProperties(bool canGoBack, bool canGoForward)
-	{
-		CanGoBack = canGoBack;
-		CanGoForward = canGoForward;
-		RaiseHistoryChanged();
 	}
 
 	internal static bool GetIsHistoryEntryValid(string url) =>

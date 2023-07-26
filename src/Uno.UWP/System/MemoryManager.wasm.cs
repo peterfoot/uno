@@ -2,12 +2,12 @@
 using System.Globalization;
 using Uno.Foundation;
 
+using NativeMethods = __Windows.__System.MemoryManager.NativeMethods;
+
 namespace Windows.System
 {
 	public partial class MemoryManager
 	{
-		private const string JsType = "Windows.System.MemoryManager";
-
 		static MemoryManager()
 		{
 			IsAvailable = true;
@@ -17,15 +17,7 @@ namespace Windows.System
 		{
 			get
 			{
-				if (ulong.TryParse(WebAssemblyRuntime.InvokeJS(
-					$"{JsType}.getAppMemoryUsage()"),
-					NumberStyles.Any,
-					CultureInfo.InvariantCulture, out var value))
-				{
-					return value;
-				}
-
-				throw new Exception($"getAppMemoryUsage returned an unsupported value");
+				return (ulong)NativeMethods.GetAppMemoryUsage();
 			}
 		}
 

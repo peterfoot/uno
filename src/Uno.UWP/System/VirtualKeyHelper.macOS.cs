@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Some mappings based on
+// https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+// https://lists.w3.org/Archives/Public/www-dom/2010JulSep/att-0182/keyCode-spec.html
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using AppKit;
@@ -52,18 +56,18 @@ namespace Windows.System
 				// Those keys are not mapped in the VirtualKey enum by windows, however the event is still raised
 				// WARNING: Those keys are only "LOCATION on keyboard" codes.
 				//			This means that for instance the 187 is a '=' on a querty keyboard, while it's a '+' on an azerty.
-				10 => (VirtualKey)191, // § (Value observed on UWP 18362, fr-FR AZERTY US-int keyboard)
-				50 => (VirtualKey)192, // ` (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				27 => (VirtualKey)189, // - (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				24 => (VirtualKey)187, // = (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				33 => (VirtualKey)219, // [ (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				30 => (VirtualKey)221, // ] (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				41 => (VirtualKey)186, // ; (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				39 => (VirtualKey)222, // ' (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				43 => (VirtualKey)188, // , (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				47 => (VirtualKey)190, // . (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				44 => (VirtualKey)191, // / (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
-				42 => (VirtualKey)220, // \ (Value observed on UWP 18362, fr-FR qwerty US-int keyboard)
+				10 => (VirtualKey)191, // § (Value observed on UWP 19041, fr-FR AZERTY US-int keyboard)
+				50 => (VirtualKey)192, // ` (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				27 => (VirtualKey)189, // - (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				24 => (VirtualKey)187, // = (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				33 => (VirtualKey)219, // [ (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				30 => (VirtualKey)221, // ] (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				41 => (VirtualKey)186, // ; (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				39 => (VirtualKey)222, // ' (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				43 => (VirtualKey)188, // , (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				47 => (VirtualKey)190, // . (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				44 => (VirtualKey)191, // / (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
+				42 => (VirtualKey)220, // \ (Value observed on UWP 19041, fr-FR qwerty US-int keyboard)
 
 				// [Key|Number] Pad
 				82 => VirtualKey.NumberPad0,
@@ -81,7 +85,7 @@ namespace Windows.System
 				69 => VirtualKey.Add,
 				75 => VirtualKey.Divide,
 				78 => VirtualKey.Subtract,
-				81 => VirtualKey.Enter, // =
+				81 => (VirtualKey)187,
 				71 => VirtualKey.Clear,
 				76 => VirtualKey.Enter,
 

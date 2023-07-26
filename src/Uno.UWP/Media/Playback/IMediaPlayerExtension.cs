@@ -17,7 +17,7 @@ namespace Uno.Media.Playback
 		/// <summary>
 		/// Provides access to the ability to raise MediaPlayer events
 		/// </summary>
-		IMediaPlayerEventsExtension Events { get; set; }
+		IMediaPlayerEventsExtension? Events { get; set; }
 
 		/// <summary>
 		/// Gets or sets the playback rate
@@ -90,6 +90,16 @@ namespace Uno.Media.Playback
 		TimeSpan Position { get; set; }
 
 		/// <summary>
+		/// Determines if the current media content is video
+		/// </summary>
+		bool? IsVideo { get; }
+
+		/// <summary>
+		/// Sets the transport controls bounds so that video can be displayed around controls
+		/// </summary>
+		void SetTransportControlsBounds(Rect bounds);
+
+		/// <summary>
 		/// Sets the source from a Uri
 		/// </summary>
 		void SetUriSource(Uri value);
@@ -158,5 +168,10 @@ namespace Uno.Media.Playback
 		/// Initializes the extension
 		/// </summary>
 		void Initialize();
+
+		/// <summary>
+		/// Notifies the extension that an option has changed
+		/// </summary>
+		void OnOptionChanged(string name, object value);
 	}
 }

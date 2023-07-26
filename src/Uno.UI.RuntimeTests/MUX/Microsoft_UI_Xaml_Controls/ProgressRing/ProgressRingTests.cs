@@ -10,8 +10,12 @@ namespace Uno.UI.RuntimeTests.MUX.Microsoft_UI_Xaml_Controls.ProgressRingTests;
 public class ProgressRingTests
 {
 	[TestMethod]
+	[RunsOnUIThread]
 	[DataRow(true)]
 	[DataRow(false)]
+#if !(__WASM__ || __MACOS__ || HAS_SKOTTIE)
+	[Ignore("Skottie is not supported on net6+ UWP targets")]
+#endif
 	public async Task ProgressRingDefaultHeightShouldBe32(bool useFluent)
 	{
 		using (useFluent ? StyleHelper.UseFluentStyles() : null)

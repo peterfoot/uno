@@ -150,13 +150,11 @@ namespace Uno.UI
 			}
 			else
 			{
-#if __ANDROID_18__
 				if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.JellyBeanMr2)
 				{
 					return view.WindowId != null;
 				}
 				else
-#endif
 				{
 					return view.WindowToken != null;
 				}
@@ -272,6 +270,17 @@ namespace Uno.UI
 				left: LogicalToPhysicalPixels(size.Left),
 				right: LogicalToPhysicalPixels(size.Right),
 				bottom: LogicalToPhysicalPixels(size.Bottom)
+			);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Thickness PhysicalToLogicalPixels(this Thickness size)
+		{
+			return new Thickness(
+				top: PhysicalToLogicalPixels(size.Top),
+				left: PhysicalToLogicalPixels(size.Left),
+				right: PhysicalToLogicalPixels(size.Right),
+				bottom: PhysicalToLogicalPixels(size.Bottom)
 			);
 		}
 

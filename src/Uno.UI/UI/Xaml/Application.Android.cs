@@ -1,5 +1,4 @@
-﻿#if XAMARIN_ANDROID
-using System;
+﻿using System;
 using Android.Content.Res;
 using Android.OS;
 using Uno.UI.Extensions;
@@ -23,6 +22,7 @@ namespace Windows.UI.Xaml
 		{
 			Window.Current.ToString();
 			Current = this;
+			InitializeSystemTheme();
 			PermissionsHelper.Initialize();
 		}
 
@@ -44,4 +44,3 @@ namespace Windows.UI.Xaml
 			new SuspendingOperation(DateTimeOffset.Now.AddSeconds(5), null);
 	}
 }
-#endif

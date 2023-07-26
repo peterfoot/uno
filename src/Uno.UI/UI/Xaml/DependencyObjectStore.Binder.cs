@@ -17,11 +17,11 @@ using Uno.Diagnostics.Eventing;
 using System.Collections;
 using Uno.Collections;
 
-#if !NET461
+#if !IS_UNIT_TESTS
 using Uno.UI.Controls;
 #endif
 
-#if XAMARIN_IOS
+#if __IOS__
 using UIKit;
 #endif
 

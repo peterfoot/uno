@@ -1,19 +1,15 @@
 using System;
-using System.Globalization;
 using Uno;
 using Uno.UI;
 using Uno.Diagnostics.Eventing;
 using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
 using Windows.Foundation.Metadata;
-using Windows.UI.Xaml.Controls.Primitives;
 using Windows.ApplicationModel.Core;
 using Windows.ApplicationModel;
 using Windows.Globalization;
 using Uno.Helpers.Theming;
 using Windows.UI.ViewManagement;
 using Uno.Extensions;
-using System.Collections.Generic;
 using Uno.Foundation.Logging;
 using Windows.UI.Xaml.Data;
 using Uno.Foundation.Extensibility;
@@ -22,6 +18,7 @@ using Windows.UI.Popups;
 using Uno.UI.WinRT.Extensions.UI.Popups;
 using WinUICoreServices = Uno.UI.Xaml.Core.CoreServices;
 using Uno.UI.Xaml.Core;
+using Uno.UI.Xaml.Media;
 
 #if HAS_UNO_WINUI
 using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
@@ -29,13 +26,13 @@ using LaunchActivatedEventArgs = Microsoft.UI.Xaml.LaunchActivatedEventArgs;
 using LaunchActivatedEventArgs = Windows.ApplicationModel.Activation.LaunchActivatedEventArgs;
 #endif
 
-#if XAMARIN_ANDROID
+#if __ANDROID__
 using View = Android.Views.View;
 using ViewGroup = Android.Views.ViewGroup;
 using Font = Android.Graphics.Typeface;
 using Android.Graphics;
 using DependencyObject = System.Object;
-#elif XAMARIN_IOS
+#elif __IOS__
 using View = UIKit.UIView;
 using ViewGroup = UIKit.UIView;
 using UIKit;
@@ -43,6 +40,7 @@ using UIKit;
 using View = AppKit.NSView;
 using ViewGroup = AppKit.NSView;
 using AppKit;
+using Windows.UI.Core;
 #else
 using View = Windows.UI.Xaml.UIElement;
 using ViewGroup = Windows.UI.Xaml.UIElement;
@@ -54,11 +52,7 @@ namespace Windows.UI.Xaml
 	{
 		private bool _initializationComplete;
 		private readonly static IEventProvider _trace = Tracing.Get(TraceProvider.Id);
-		private ApplicationTheme? _requestedTheme;
-#pragma warning disable CA1805 // Do not initialize unnecessarily
-		// TODO: This field is ALWAYS false. Either remove it or assign when appropriate.
-		private bool _systemThemeChangesObserved = false;
-#pragma warning restore CA1805 // Do not initialize unnecessarily
+		private ApplicationTheme _requestedTheme = ApplicationTheme.Dark;
 		private SpecializedResourceDictionary.ResourceKey _requestedThemeForResources;
 		private bool _isInBackground;
 
@@ -116,11 +110,7 @@ namespace Windows.UI.Xaml
 
 		public ApplicationTheme RequestedTheme
 		{
-			get
-			{
-				EnsureInternalRequestedTheme();
-				return InternalRequestedTheme.Value;
-			}
+			get => InternalRequestedTheme;
 			set
 			{
 				if (_initializationComplete)
@@ -131,23 +121,23 @@ namespace Windows.UI.Xaml
 			}
 		}
 
-		private void EnsureInternalRequestedTheme()
+		private void InitializeSystemTheme()
 		{
-			if (InternalRequestedTheme == null)
-			{
-				// just cache the theme, but do not notify about a change unnecessarily
-				InternalRequestedTheme = GetDefaultSystemTheme();
-			}
+			// just cache the theme, but do not notify about a change unnecessarily
+			InternalRequestedTheme = GetSystemTheme();
 		}
 
-		private ApplicationTheme? InternalRequestedTheme
+		private ApplicationTheme InternalRequestedTheme
 		{
 			get => _requestedTheme;
 			set
 			{
 				_requestedTheme = value;
+
 				// Sync with core application's theme
 				CoreApplication.RequestedTheme = value == ApplicationTheme.Dark ? SystemTheme.Dark : SystemTheme.Light;
+
+				UpdateRootVisualBackground();
 				UpdateRequestedThemesForResources();
 			}
 		}
@@ -166,12 +156,7 @@ namespace Windows.UI.Xaml
 
 		internal SpecializedResourceDictionary.ResourceKey RequestedThemeForResources
 		{
-			get
-			{
-				EnsureInternalRequestedTheme();
-				return _requestedThemeForResources;
-			}
-
+			get => _requestedThemeForResources;
 			private set
 			{
 				_requestedThemeForResources = value;
@@ -192,7 +177,7 @@ namespace Windows.UI.Xaml
 		{
 			// this flag makes sure the app will not respond to OS events
 			IsThemeSetExplicitly = explicitTheme.HasValue;
-			var theme = explicitTheme ?? GetDefaultSystemTheme();
+			var theme = explicitTheme ?? GetSystemTheme();
 			SetRequestedTheme(theme);
 		}
 
@@ -228,20 +213,8 @@ namespace Windows.UI.Xaml
 		/// </summary>
 		public event UnhandledExceptionEventHandler UnhandledException;
 
-		public void OnSystemThemeChanged()
-		{
-			// if user overrides theme, don't apply system theme
-			if (!IsThemeSetExplicitly)
-			{
-				var theme = GetDefaultSystemTheme();
-				SetRequestedTheme(theme);
-			}
-
-			UISettings.OnColorValuesChanged();
-		}
-
 #if !__ANDROID__ && !__MACOS__ && !__SKIA__
-		[NotImplemented("__IOS__", "NET461", "__WASM__", "__NETSTD_REFERENCE__")]
+		[NotImplemented("__IOS__", "IS_UNIT_TESTS", "__WASM__", "__NETSTD_REFERENCE__")]
 		public void Exit()
 		{
 			if (this.Log().IsEnabled(LogLevel.Warning))
@@ -262,8 +235,6 @@ namespace Windows.UI.Xaml
 			StartPartial(callback);
 		}
 
-		partial void ObserveSystemThemeChanges();
-
 		static partial void StartPartial(ApplicationInitializationCallback callback);
 
 		protected internal virtual void OnActivated(IActivatedEventArgs args) { }
@@ -272,18 +243,33 @@ namespace Windows.UI.Xaml
 
 		internal void InitializationCompleted()
 		{
-			if (!_systemThemeChangesObserved)
-			{
-				ObserveSystemThemeChanges();
-			}
+			SystemThemeHelper.SystemThemeChanged += OnSystemThemeChanged;
+
 			_initializationComplete = true;
+
+#if !HAS_UNO_WINUI
+			// Delayed raise of OnWindowCreated.
+			Windows.UI.Xaml.Window.Current.RaiseCreated();
+#endif
 		}
 
 		internal void RaiseRecoverableUnhandledException(Exception e) => UnhandledException?.Invoke(this, new UnhandledExceptionEventArgs(e, false));
 
-		private ApplicationTheme GetDefaultSystemTheme() =>
+		private ApplicationTheme GetSystemTheme() =>
 			SystemThemeHelper.SystemTheme == SystemTheme.Light ?
 				ApplicationTheme.Light : ApplicationTheme.Dark;
+
+		private void OnSystemThemeChanged(object sender, EventArgs e)
+		{
+			// if user overrides theme, don't apply system theme
+			if (!IsThemeSetExplicitly)
+			{
+				var theme = GetSystemTheme();
+				SetRequestedTheme(theme);
+			}
+
+			UISettings.OnColorValuesChanged();
+		}
 
 #if __WASM__ || __SKIA__
 		private IDisposable WritePhaseEventTrace(int startEventId, int stopEventId)
@@ -390,15 +376,6 @@ namespace Windows.UI.Xaml
 			new SuspendingOperation(DateTimeOffset.Now.AddSeconds(0), null);
 #endif
 
-		protected virtual void OnWindowCreated(global::Windows.UI.Xaml.WindowCreatedEventArgs args)
-		{
-		}
-
-		internal void RaiseWindowCreated(Window window)
-		{
-			OnWindowCreated(new WindowCreatedEventArgs(window));
-		}
-
 		private void SetRequestedTheme(ApplicationTheme requestedTheme)
 		{
 			if (requestedTheme != InternalRequestedTheme)
@@ -413,8 +390,15 @@ namespace Windows.UI.Xaml
 
 		internal void OnRequestedThemeChanged() => OnResourcesChanged(ResourceUpdateReason.ThemeResource);
 
+		private void UpdateRootVisualBackground()
+		{
+			var rootVisual = WinUICoreServices.Instance.MainRootVisual;
+			rootVisual?.SetBackgroundColor(ThemingHelper.GetRootVisualBackground());
+		}
+
 		private void OnResourcesChanged(ResourceUpdateReason updateReason)
 		{
+			DefaultBrushes.ResetDefaultThemeBrushes();
 			foreach (var contentRoot in WinUICoreServices.Instance.ContentRootCoordinator.ContentRoots)
 			{
 				if (GetTreeRoot(contentRoot) is { } root)
@@ -448,7 +432,6 @@ namespace Windows.UI.Xaml
 		/// </summary>
 		internal static void PropagateResourcesChanged(object instance, ResourceUpdateReason updateReason)
 		{
-
 			// Update ThemeResource references that have changed
 			if (instance is FrameworkElement fe)
 			{

@@ -15,12 +15,20 @@ using Uno.UI;
 using Uno.Disposables;
 using Uno.UI.Xaml;
 using Uno.Foundation.Logging;
+using Uno.UI.Helpers;
 
 namespace Windows.UI.Xaml
 {
 	public partial class FrameworkElement : UIElement, IFrameworkElement
 	{
-		private SerialDisposable _backgroundSubscription;
+		private WeakBrushChangedProxy _backgroundSubscription;
+		private Action _backgroundChanged;
+
+		~FrameworkElement()
+		{
+			_backgroundSubscription?.Unsubscribe();
+		}
+
 		public T FindFirstParent<T>() where T : class => FindFirstParent<T>(includeCurrent: false);
 
 		public T FindFirstParent<T>(bool includeCurrent) where T : class
@@ -40,15 +48,15 @@ namespace Windows.UI.Xaml
 
 		partial void Initialize();
 
-		public FrameworkElement() : this(DefaultHtmlTag, false)
+		protected FrameworkElement() : this(DefaultHtmlTag, false)
 		{
 		}
 
-		public FrameworkElement(string htmlTag) : this(htmlTag, false)
+		protected FrameworkElement(string htmlTag) : this(htmlTag, false)
 		{
 		}
 
-		public FrameworkElement(string htmlTag, bool isSvg) : base(htmlTag, isSvg)
+		protected FrameworkElement(string htmlTag, bool isSvg) : base(htmlTag, isSvg)
 		{
 			Initialize();
 
@@ -115,10 +123,8 @@ namespace Windows.UI.Xaml
 
 		private protected void SetAndObserveBackgroundBrush(Brush brush)
 		{
-			var subscription = _backgroundSubscription ??= new SerialDisposable();
-
-			subscription.Disposable = null;
-			subscription.Disposable = BorderLayerRenderer.SetAndObserveBackgroundBrush(this, brush);
+			_backgroundSubscription ??= new();
+			BorderLayerRenderer.SetAndObserveBackgroundBrush(this, brush, _backgroundSubscription, ref _backgroundChanged);
 		}
 		#endregion
 

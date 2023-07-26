@@ -1,4 +1,4 @@
-﻿#if NET461 || UNO_REFERENCE_API || __MACOS__
+﻿#if IS_UNIT_TESTS || UNO_REFERENCE_API || __MACOS__
 #pragma warning disable CS0067, CS649
 #endif
 
@@ -19,6 +19,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Uno.Foundation.Logging;
 using Uno.Disposables;
+using Uno.UI.Helpers;
 using Uno.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 
@@ -43,13 +44,22 @@ namespace Windows.UI.Xaml.Controls
 
 	public partial class TextBox : Control, IFrameworkTemplatePoolAware
 	{
+		/// <summary>
+		/// This is a workaround for the template pooling issue where we change IsChecked when the template is recycled.
+		/// This prevents incorrect event raising but is not a "real" solution. Pooling could still cause issues.
+		/// This workaround can be removed if pooling is removed. See https://github.com/unoplatform/uno/issues/12189
+		/// </summary>
+		private bool _suppressTextChanged;
+
 #pragma warning disable CS0067, CS0649
 		private IFrameworkElement _placeHolder;
 		private ContentControl _contentElement;
 		private WeakReference<Button> _deleteButton;
 
-		private readonly SerialDisposable _selectionHighlightColorSubscription = new SerialDisposable();
-		private readonly SerialDisposable _foregroundBrushSubscription = new SerialDisposable();
+		private WeakBrushChangedProxy _selectionHighlightColorSubscription;
+		private WeakBrushChangedProxy _foregroundBrushSubscription;
+		private Action _selectionHighlightColorChanged;
+		private Action _foregroundBrushChanged;
 #pragma warning restore CS0067, CS0649
 
 		private ContentPresenter _header;
@@ -94,31 +104,24 @@ namespace Windows.UI.Xaml.Controls
 
 			DefaultStyleKey = typeof(TextBox);
 			SizeChanged += OnSizeChanged;
-
-			Loaded += TextBox_Loaded;
-			Unloaded += TextBox_Unloaded;
 		}
+
+		~TextBox()
+		{
+			_selectionHighlightColorSubscription?.Unsubscribe();
+			_foregroundBrushSubscription?.Unsubscribe();
+		}
+
+#if __ANDROID__
+		protected override void JavaFinalize()
+		{
+			_selectionHighlightColorSubscription?.Unsubscribe();
+			_foregroundBrushSubscription?.Unsubscribe();
+			base.JavaFinalize();
+		}
+#endif
 
 		internal bool IsUserModifying => _isInputModifyingText || _isInputClearingText;
-
-		private void TextBox_Loaded(object sender, RoutedEventArgs e)
-		{
-			// Brush subscriptions might have been removed during Unloaded
-			if (_foregroundBrushSubscription.Disposable is null)
-			{
-				OnForegroundColorChanged(null, Foreground);
-			}
-			if (_selectionHighlightColorSubscription.Disposable is null)
-			{
-				OnSelectionHighlightColorChanged(SelectionHighlightColor);
-			}
-		}
-
-		private void TextBox_Unloaded(object sender, RoutedEventArgs e)
-		{
-			_foregroundBrushSubscription.Disposable = null;
-			_selectionHighlightColorSubscription.Disposable = null;
-		}
 
 		private void OnSizeChanged(object sender, SizeChangedEventArgs args)
 		{
@@ -233,14 +236,11 @@ namespace Windows.UI.Xaml.Controls
 				typeof(TextBox),
 				new FrameworkPropertyMetadata(
 					defaultValue: string.Empty,
-					options: FrameworkPropertyMetadataOptions.None,
+					options: FrameworkPropertyMetadataOptions.CoerceOnlyWhenChanged,
 					propertyChangedCallback: (s, e) => ((TextBox)s)?.OnTextChanged(e),
-					coerceValueCallback: (d, v) => ((TextBox)d)?.CoerceText(v),
+					coerceValueCallback: (d, v, _) => ((TextBox)d)?.CoerceText(v),
 					defaultUpdateSourceTrigger: UpdateSourceTrigger.Explicit
 				)
-				{
-					CoerceWhenUnchanged = false
-				}
 			);
 
 		protected virtual void OnTextChanged(DependencyPropertyChangedEventArgs e)
@@ -304,13 +304,17 @@ namespace Windows.UI.Xaml.Controls
 			{
 				_isInvokingTextChanged = true;
 				_isTextChangedPending = false;
-				TextChanged?.Invoke(this, new TextChangedEventArgs(this));
+				if (!_suppressTextChanged) // This workaround can be removed if pooling is removed. See https://github.com/unoplatform/uno/issues/12189
+				{
+					TextChanged?.Invoke(this, new TextChangedEventArgs(this));
+				}
 			}
 #if !HAS_EXPENSIVE_TRYFINALLY // Try/finally incurs a very large performance hit in mono-wasm - https://github.com/dotnet/runtime/issues/50783
 			finally
 #endif
 			{
 				_isInvokingTextChanged = false;
+				_suppressTextChanged = false;
 			}
 		}
 
@@ -418,13 +422,9 @@ namespace Windows.UI.Xaml.Controls
 
 		protected override void OnForegroundColorChanged(Brush oldValue, Brush newValue)
 		{
-			_foregroundBrushSubscription.Disposable = null;
-			if (newValue is SolidColorBrush brush)
-			{
-				OnForegroundColorChangedPartial(brush);
-				_foregroundBrushSubscription.Disposable =
-					Brush.AssignAndObserveBrush(brush, c => OnForegroundColorChangedPartial(brush));
-			}
+			_foregroundBrushSubscription ??= new();
+			_foregroundBrushChanged = () => OnForegroundColorChangedPartial(newValue);
+			_foregroundBrushSubscription.Subscribe(newValue, _foregroundBrushChanged);
 		}
 
 		partial void OnForegroundColorChangedPartial(Brush newValue);
@@ -472,16 +472,10 @@ namespace Windows.UI.Xaml.Controls
 
 		private void OnSelectionHighlightColorChanged(SolidColorBrush brush)
 		{
-			_selectionHighlightColorSubscription.Disposable = null;
-			if (brush is not null)
-			{
-				OnSelectionHighlightColorChangedPartial(brush);
-				_selectionHighlightColorSubscription.Disposable = Brush.AssignAndObserveBrush(brush, c => OnSelectionHighlightColorChangedPartial(brush));
-			}
-			else
-			{
-				OnSelectionHighlightColorChangedPartial(DefaultBrushes.SelectionHighlightColor);
-			}
+			_selectionHighlightColorSubscription ??= new();
+			brush ??= DefaultBrushes.SelectionHighlightColor;
+			_selectionHighlightColorChanged = () => OnSelectionHighlightColorChangedPartial(brush);
+			_selectionHighlightColorSubscription.Subscribe(brush, _selectionHighlightColorChanged);
 		}
 
 		partial void OnSelectionHighlightColorChangedPartial(SolidColorBrush brush);
@@ -635,8 +629,8 @@ namespace Windows.UI.Xaml.Controls
 
 		#endregion
 
-#if __IOS__ || NET461 || __WASM__ || __SKIA__ || __NETSTD_REFERENCE__ || __MACOS__
-		[Uno.NotImplemented("__IOS__", "NET461", "__WASM__", "__SKIA__", "__NETSTD_REFERENCE__", "__MACOS__")]
+#if __IOS__ || IS_UNIT_TESTS || __WASM__ || __SKIA__ || __NETSTD_REFERENCE__ || __MACOS__
+		[Uno.NotImplemented("__IOS__", "IS_UNIT_TESTS", "__WASM__", "__SKIA__", "__NETSTD_REFERENCE__", "__MACOS__")]
 #endif
 		public CharacterCasing CharacterCasing
 		{
@@ -644,8 +638,8 @@ namespace Windows.UI.Xaml.Controls
 			set => this.SetValue(CharacterCasingProperty, value);
 		}
 
-#if __IOS__ || NET461 || __WASM__ || __SKIA__ || __NETSTD_REFERENCE__ || __MACOS__
-		[Uno.NotImplemented("__IOS__", "NET461", "__WASM__", "__SKIA__", "__NETSTD_REFERENCE__", "__MACOS__")]
+#if __IOS__ || IS_UNIT_TESTS || __WASM__ || __SKIA__ || __NETSTD_REFERENCE__ || __MACOS__
+		[Uno.NotImplemented("__IOS__", "IS_UNIT_TESTS", "__WASM__", "__SKIA__", "__NETSTD_REFERENCE__", "__MACOS__")]
 #endif
 		public static DependencyProperty CharacterCasingProperty { get; } =
 			DependencyProperty.Register(
@@ -793,7 +787,7 @@ namespace Windows.UI.Xaml.Controls
 
 		#region TextAlignment DependencyProperty
 
-#if XAMARIN_ANDROID
+#if __ANDROID__
 		public new TextAlignment TextAlignment
 #else
 		public TextAlignment TextAlignment
@@ -949,19 +943,48 @@ namespace Windows.UI.Xaml.Controls
 		{
 			base.OnKeyDown(args);
 
+
+			// On skia, sometimes SelectionStart is updated to a new value before KeyDown is fired, so
+			// we need to get selectionStart from another source on Skia.
+#if __SKIA__
+			var selectionStart = TextBoxView.SelectionBeforeKeyDown.start;
+#else
+			var selectionStart = SelectionStart;
+#endif
+
 			// Note: On windows only keys that are "moving the cursor" are handled
 			//		 AND ** only KeyDown ** is handled (not KeyUp)
 			switch (args.Key)
 			{
 				case VirtualKey.Up:
+					if (AcceptsReturn)
+					{
+						args.Handled = true;
+					}
+					break;
 				case VirtualKey.Down:
+					if (selectionStart != Text.Length)
+					{
+						SelectionStart = Text.Length;
+						args.Handled = true;
+					}
 					if (AcceptsReturn)
 					{
 						args.Handled = true;
 					}
 					break;
 				case VirtualKey.Left:
+					if (selectionStart != 0)
+					{
+						args.Handled = true;
+					}
+					break;
 				case VirtualKey.Right:
+					if (selectionStart != Text.Length)
+					{
+						args.Handled = true;
+					}
+					break;
 				case VirtualKey.Home:
 				case VirtualKey.End:
 					args.Handled = true;
@@ -971,10 +994,9 @@ namespace Windows.UI.Xaml.Controls
 #if __WASM__
 			if (args.Handled)
 			{
-				// Marking the routed event as Handled makes the browser call
-				// preventDefault() for key events. This is a problem as it
-				// breaks the browser caret navigation within the input.
-				((IPreventDefaultHandling)args).DoNotPreventDefault = true;
+				// Marking the routed event as Handled makes the browser call preventDefault() for key events.
+				// This is a problem as it breaks the browser caret navigation within the input.
+				((IHtmlHandleableRoutedEventArgs)args).HandledResult &= ~HtmlEventDispatchResult.PreventDefault;
 			}
 #endif
 		}
@@ -1050,6 +1072,7 @@ namespace Windows.UI.Xaml.Controls
 
 		public void OnTemplateRecycled()
 		{
+			_suppressTextChanged = true;
 			Text = string.Empty;
 		}
 

@@ -1,4 +1,4 @@
-﻿#if XAMARIN_ANDROID
+﻿#if __ANDROID__
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -10,9 +10,11 @@ using Windows.UI.StartScreen;
 using Android.Content;
 using Uno.Extensions;
 using Windows.Foundation.Metadata;
-
 using System.ComponentModel;
 using Uno.Foundation.Logging;
+using Windows.UI.Core;
+using WinUICoreServices = Uno.UI.Xaml.Core.CoreServices;
+using IOnPreDrawListener = Android.Views.ViewTreeObserver.IOnPreDrawListener;
 
 namespace Windows.UI.Xaml
 {
@@ -42,8 +44,6 @@ namespace Windows.UI.Xaml
 			// Android.App.Application.Context to be populated properly. This enables
 			// APIs such as Windows.Storage.ApplicationData.Current.LocalSettings to function properly.
 			_app = appBuilder();
-
-			ResourceHelper.ResourcesService = new ResourcesService(this);
 		}
 
 		public override void OnCreate()
@@ -69,6 +69,7 @@ namespace Windows.UI.Xaml
 				{
 					_app.OnLaunched(new LaunchActivatedEventArgs());
 				}
+
 				_isRunning = true;
 			}
 		}
@@ -121,14 +122,11 @@ namespace Windows.UI.Xaml
 		}
 
 		/// <summary>
-		/// This method is used by UI Test frameworks to get 
+		/// This method is used by UI Test frameworks to get
 		/// the Xamarin compatible name for a control in Java.
 		/// </summary>
 		/// <param name="type">A type full name</param>
 		/// <returns>The assembly that contains the specified type</returns>
-#if !NET6_0_OR_GREATER
-		[Android.Runtime.Preserve]
-#endif
 		[Export]
 		[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 		public static string GetTypeAssemblyFullName(string type) => Type.GetType(type)?.Assembly.FullName;

@@ -1,9 +1,9 @@
-#if __WASM__
 using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.JavaScript;
 using System.Threading;
 using Uno;
 using Uno.Disposables;
@@ -94,6 +94,7 @@ namespace Windows.UI.Xaml
 			}
 		}
 
+		[JSExport]
 		[Preserve]
 		public static void Resize(double width, double height)
 		{
@@ -131,10 +132,7 @@ namespace Windows.UI.Xaml
 			}
 		}
 
-		partial void InternalActivate()
-		{
-			WindowManagerInterop.WindowActivate();
-		}
+		partial void ShowPartial() => WindowManagerInterop.WindowActivate();
 
 		private void InternalSetContent(UIElement content)
 		{
@@ -194,6 +192,21 @@ namespace Windows.UI.Xaml
 				_rootVisual.RemoveAttribute("data-use-hand-cursor-interaction");
 			}
 		}
+
+		internal void DisplayFullscreen(UIElement content)
+		{
+			if (content == null)
+			{
+				FullWindowMediaRoot.Child = null;
+				_rootBorder.Visibility = Visibility.Visible;
+				FullWindowMediaRoot.Visibility = Visibility.Collapsed;
+			}
+			else
+			{
+				FullWindowMediaRoot.Visibility = Visibility.Visible;
+				_rootBorder.Visibility = Visibility.Collapsed;
+				FullWindowMediaRoot.Child = content;
+			}
+		}
 	}
 }
-#endif

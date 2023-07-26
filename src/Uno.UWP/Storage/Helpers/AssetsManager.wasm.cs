@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -20,6 +20,8 @@ using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
 using Windows.UI.WebUI;
 
+using NativeMethods = __Windows.Storage.Helpers.AssetsManager.NativeMethods;
+
 namespace Windows.Storage.Helpers
 {
 	internal partial class AssetsManager
@@ -31,9 +33,9 @@ namespace Windows.Storage.Helpers
 		{
 			var assetsUri = AssetsPathBuilder.BuildAssetUri("uno-assets.txt");
 
-			var assets = await WebAssemblyRuntime.InvokeAsync($"Windows.Storage.AssetManager.DownloadAssetsManifest(\'{assetsUri}\')");
+			var assets = await NativeMethods.DownloadAssetsManifestAsync(assetsUri);
 
-			return new HashSet<string>(Regex.Split(assets, "\r\n|\r|\n"), StringComparer.OrdinalIgnoreCase);
+			return new HashSet<string>(SplitMatch().Split(assets), StringComparer.OrdinalIgnoreCase);
 		}
 
 		public static async Task<string> DownloadAsset(CancellationToken ct, string assetPath)
@@ -50,7 +52,7 @@ namespace Windows.Storage.Helpers
 				if (!File.Exists(localPath))
 				{
 					var assetUri = AssetsPathBuilder.BuildAssetUri(updatedPath);
-					var assetInfo = await WebAssemblyRuntime.InvokeAsync($"Windows.Storage.AssetManager.DownloadAsset(\'{assetUri}\')");
+					var assetInfo = await NativeMethods.DownloadAssetAsync(assetUri);
 
 					var parts = assetInfo.Split(';');
 					if (parts.Length == 2)
@@ -88,5 +90,15 @@ namespace Windows.Storage.Helpers
 				throw new FileNotFoundException($"The file [{assetPath}] cannot be found");
 			}
 		}
+
+#if !DISABLE_GENERATED_REGEX
+		[GeneratedRegex("\r\n|\r|\n")]
+#endif
+		private static partial Regex SplitMatch();
+
+#if DISABLE_GENERATED_REGEX
+		private static partial Regex SplitMatch()
+			=> new Regex("\r\n|\r|\n");
+#endif
 	}
 }
