@@ -98,6 +98,7 @@ namespace Windows.UI.Composition
 				paint.IsStroke = isStroke;
 				paint.IsAntialias = true;
 				paint.IsAutohinted = true;
+				paint.FilterQuality = SKFilterQuality.High;
 			}
 			else
 			{
