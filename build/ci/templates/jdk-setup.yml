@@ -3,4 +3,11 @@ steps:
   - pwsh: |
       echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
       echo "##vso[task.setvariable variable=JavaSdkDirectory]$(JAVA_HOME_11_X64)"
+      echo "using JDK from $(JAVA_HOME_11_X64)"
+      (get-date).ToString('yymmddhhmmssfff')
+      $(JAVA_HOME_11_X64)\bin\java.exe -version
+      (get-date).ToString('yymmddhhmmssfff')
+      $(JAVA_HOME_11_X64)\bin\javac.exe -version
+      (get-date).ToString('yymmddhhmmssfff')
+
     displayName: Select JDK 11
