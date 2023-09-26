@@ -60,16 +60,16 @@ Notes:
 
 ## Implemented Brushes / Properties
 
-| Brush                              | Android | iOS     | macOS | Wasm |                                                              |
+| Brush                              | Android | iOS     | macOS | Wasm | GTK/WPF |                                                             |
 | ---------------------------------- | ------- | ------- | ---- | ------------------------------------------------------------ | ---------------------------------- |
-| `AcrylicBrush`                     | Yes (3) | Yes (3) | Yes (3) | Yes   | [Documentation](https://docs.microsoft.com/fr-ca/uwp/api/windows.ui.xaml.media.acrylicbrush) |
-| `ImageBrush`                       | Yes (1) | Yes (1) |  | No   | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Media.ImageBrush) |
-| `LinearGradientBrush` | Yes (2) | Yes (2) | Yes  | Yes | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Media.LinearGradientBrush) |
-| `RadialGradientBrush` (WinUI 2.4+) | Yes | Yes  | Yes  | Yes |                                                              |
-| `RevealBrush` (WinUI 2.0+) | No     | No     | No   | No  |                                                              |
-| `SolidColorBrush`                  | Yes     | Yes     | Yes  | Yes  | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Media.SolidColorBrush) |
-| `WebViewBrush`                     | No      | No      | No    | No   | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Controls.WebViewBrush) |
-| `XamlCompositionBrushBase`         | No      | No      | No    | No   | [Documentation](https://docs.microsoft.com/en-us/uwp/api/windows.ui.xaml.media.xamlcompositionbrushbase) |
+| `AcrylicBrush`                     | Yes (3) | Yes (3) | Yes (3) | Yes   | Yes | [Documentation](https://docs.microsoft.com/fr-ca/uwp/api/windows.ui.xaml.media.acrylicbrush) |
+| `ImageBrush`                       | Yes (1) | Yes (1) |  | No   | Yes | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Media.ImageBrush) |
+| `LinearGradientBrush` | Yes (2) | Yes (2) | Yes  | Yes | Yes | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Media.LinearGradientBrush) |
+| `RadialGradientBrush` (WinUI 2.4+) | Yes | Yes  | Yes  | Yes | Yes |                                                              |
+| `RevealBrush` (WinUI 2.0+) | No     | No     | No   | No  | No  |                                                              |
+| `SolidColorBrush`                  | Yes     | Yes     | Yes  | Yes  | Yes | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Media.SolidColorBrush) |
+| `WebViewBrush`                     | No      | No      | No    | No   | No | [Documentation](https://docs.microsoft.com/en-us/uwp/api/Windows.UI.Xaml.Controls.WebViewBrush) |
+| `XamlCompositionBrushBase`         | No      | No      | No    | No   | Yes | [Documentation](https://docs.microsoft.com/en-us/uwp/api/windows.ui.xaml.media.xamlcompositionbrushbase) |
 
 Notes:
 
@@ -79,7 +79,7 @@ Notes:
 
 ## AcrylicBrush
 
-Uno Platform supports the `Backdrop` version of `AcrylicBrush` (blurring in-app content behind element) on all targets except GTK and WPF. In addition, on macOS we support the `HostBackdrop` acrylic (blurring content behind the app window).
+Uno Platform supports the `Backdrop` version of `AcrylicBrush` (blurring in-app content behind element) on all targets. In addition, on macOS we support the `HostBackdrop` acrylic (blurring content behind the app window).
 
 The brush currently has an important limitation on Android, iOS, and macOS: it can be used **only on elements which have no children**. Eg., if you wanted to have an acrylic effect in the background of a `Grid` with child content, then you would add a `Border` with no inner child behind the other content in the `Grid` and set the acrylic background on the `Border`, rather than set it directly on the `Grid`:
 
