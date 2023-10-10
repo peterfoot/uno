@@ -16,6 +16,7 @@ internal partial class ContentManager
 
 	private UIElement? _content;
 	private RootVisual? _rootVisual;
+	private Border? _rootBorder;
 
 	public ContentManager(object owner, bool isCoreWindowContent)
 	{
@@ -49,11 +50,23 @@ internal partial class ContentManager
 			{
 				throw new InvalidOperationException("Main visual tree must be initialized");
 			}
-			// TODO: Add RootScrollViewer everywhere
-			visualTree.SetPublicRootVisual(newContent, rootScrollViewer: null, rootContentPresenter: null);
 
-			if (_rootVisual is null)
+			// TODO: Add RootScrollViewer everywhere
+
+			if (_rootVisual is null || _rootBorder is null)
 			{
+				if (_owner is not Windows.UI.Xaml.Window window)
+				{
+					throw new InvalidOperationException("Owner of ContentManager should be a Window");
+				}
+
+				// TODO Uno specific: We are using WindowChrome as public root,
+				// but it should be the new content directly instead. However,
+				// that would mean VisualTree.ResetRoots would occur every time content
+				// changes, which caused problems on iOS 
+				_rootBorder = new();
+				visualTree.SetPublicRootVisual(_rootBorder, rootScrollViewer: null, rootContentPresenter: null);
+
 				// Initialize root visual and attach it to owner window.
 
 				_rootVisual = WinUICoreServices.Instance.MainRootVisual;
@@ -63,13 +76,10 @@ internal partial class ContentManager
 					throw new InvalidOperationException("The root visual was not created.");
 				}
 
-				if (_owner is not Windows.UI.Xaml.Window window)
-				{
-					throw new InvalidOperationException("Owner of ContentManager should be a Window");
-				}
-
 				AttachToWindow(_rootVisual, window);
 			}
+
+			_rootBorder.Child = newContent;
 		}
 
 		_content = newContent;

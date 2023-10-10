@@ -8,6 +8,8 @@ using Windows.Graphics.Display;
 using Uno.UI.Extensions;
 using Windows.UI.Composition;
 using Uno.UI.Xaml.Controls;
+using Windows.UI.Xaml.Controls;
+using Windows.ApplicationModel.Core;
 
 namespace Windows.UI.Xaml;
 
@@ -41,6 +43,12 @@ public sealed partial class XamlRoot
 			if (publicRoot is WindowChrome chrome)
 			{
 				return chrome.Content as UIElement;
+			}
+			else if (
+				publicRoot is Border border &&
+				CoreApplication.IsFullFledgedApp)
+			{
+				return border.Child;
 			}
 
 			return publicRoot;
